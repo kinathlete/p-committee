@@ -1,2 +1,2 @@
-# Welcome to Awaike!
-## Your AI-powered content creator assistant.
+# Welcome to Committee.ai!
+## Your AI-powered business assistant platform.
