@@ -35,6 +35,12 @@ if "assistant_name_list" not in st.session_state:
 if "selected_assistant_name" not in st.session_state:
     st.session_state.selected_assistant_name = ""
 
+if "assistant_instruction" not in st.session_state:
+    st.session_state.assistant_instruction = ""
+  
+if "selected_version" not in st.session_state:
+    st.session_state.selected_version = ""
+    
 if "existing_file_id_list" not in st.session_state:
     st.session_state.existing_file_id_list = []
 
@@ -150,7 +156,7 @@ if "thread_id" not in st.session_state:
 
 if "last_prompt" not in st.session_state:
     st.session_state.last_prompt = None
-
+    
 if "run_with_scraping" not in st.session_state:
     st.session_state.run_with_scraping = False
 
@@ -163,6 +169,9 @@ if "uploaded_file_id" not in st.session_state:
 if "scraping_file_id_list" not in st.session_state:
     st.session_state.scraping_file_id_list = []
 
+if "api_key" not in st.session_state:
+    st.session_state.api_key = ""
+    
 ## PAGE CONFIG ##
 
 # Set up the Streamlit page with a title and icon
@@ -210,19 +219,45 @@ def start_conversation():
     st.session_state.thread_id = thread.id
     # st.write("thread id: ", thread.id)
 
+def changeToDev():
+    st.session_state.dev_env_on = True
+    
+
 ## SIDEBAR ##
 
-# Show Company logo in the sidebar
-dir_root = os.path.dirname(os.path.abspath(__file__))
-logo = Image.open(dir_root+'/files/images/Digital Logo_Calibo.png')
-st.sidebar.image(logo)
+dev_env = st.sidebar.toggle("Dev Env")
 
+# Show Company logo in the sidebar
+if not dev_env:
+    dir_root = os.path.dirname(os.path.abspath(__file__))
+    logo = Image.open(dir_root+'/files/images/Digital Logo_Calibo.png')
+    st.sidebar.image(logo)
+
+
+if dev_env:
+    st.markdown(
+    """
+    <style>
+        section[data-testid="stSidebar"] {
+            width: 500px !important; # Set the width to your desired value
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+    )
+    
 # Create a sidebar for API key configuration and additional features
 st.sidebar.header("Configuration :wrench:")
 
-api_key = st.sidebar.text_input("Enter your OpenAI API key", type="password")
-if api_key:
-    openai.api_key = api_key
+if not st.session_state.api_key:
+    st.session_state.api_key = st.sidebar.text_input("Enter your OpenAI API key", type="password")
+    
+if st.session_state.api_key:
+    openai.api_key = st.session_state.api_key
+    available_models = []
+    for model in client.models.list():
+        available_models.append(model.id)
+    print(available_models)
 
     # Create a selectbox to pick the assistant by name and list all files associated with the assistant
     assistants = get_assistants()
@@ -231,9 +266,15 @@ if api_key:
         assistant_names.append(assistant.name)
     st.session_state.assistant_name_list = assistant_names
     st.session_state.selected_assistant_name = st.sidebar.selectbox("Select an Assistant", st.session_state.assistant_name_list)
+    if dev_env:
+        st.session_state.selected_version = st.sidebar.selectbox("Select a version", ["v1","v2","v3"])
+        
     if st.session_state.selected_assistant_name:
         for assistant in assistants:
             if assistant.name == st.session_state.selected_assistant_name:
+                if dev_env:
+                    st.session_state.assistant_instruction = st.sidebar.text_area("Instructions",assistant.instructions)
+                    
                 assistant_id = assistant.id
                 assistant_files = get_assistant_files(assistant_id)
                 organization_files = get_organization_files()
