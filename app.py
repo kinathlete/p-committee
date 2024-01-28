@@ -41,6 +41,9 @@ if "assistant_instruction" not in st.session_state:
 if "selected_version" not in st.session_state:
     st.session_state.selected_version = ""
     
+if "selected_model" not in st.session_state:
+    st.session_state.selected_model = ""
+    
 if "existing_file_id_list" not in st.session_state:
     st.session_state.existing_file_id_list = []
 
@@ -274,6 +277,7 @@ if st.session_state.api_key:
             if assistant.name == st.session_state.selected_assistant_name:
                 if dev_env:
                     st.session_state.assistant_instruction = st.sidebar.text_area("Instructions",assistant.instructions)
+                    st.session_state.selected_model = st.sidebar.selectbox("Model", available_models,index=available_models.index(assistant.model))
                     
                 assistant_id = assistant.id
                 assistant_files = get_assistant_files(assistant_id)
