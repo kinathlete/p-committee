@@ -1,3 +1,4 @@
+from email.mime import base
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
@@ -9,34 +10,33 @@ import pdfkit
 import shutil
 import re
 import tiktoken
+from urllib.parse import urlparse,urlsplit,urlunparse
 # from weasyprint import HTML
 
 # Configure pdfkit to use the binary
 # config = pdfkit.configuration(wkhtmltopdf=wkhtmltopdf_path)
 
-def convert_html_to_pdf(html_folder, pdf_folder):
+def convert_html_to_pdf(html_folder, pdf_folder, base_url):
     if not os.path.exists(pdf_folder):
         os.makedirs(pdf_folder)
 
-    # options = {
-    #     'encoding': "UTF-8",
-    #     'dpi': 400
-    # }
+    domain_name = urlparse(base_url).netloc.replace('www.', '').replace('.', '_')
+    html_files = [f for f in sorted(os.listdir(html_folder)) if f.endswith('.html')]
+    total_html_files = len(html_files)
+    part_number = 1
 
-    for html_file in os.listdir(html_folder):
-        print(html_file)
-        if html_file.endswith('.html'):
-            html_path = os.path.join(html_folder, html_file)
-            pdf_path = os.path.join(pdf_folder, html_file.replace('.html', '.pdf'))
-            pdfkit.from_file(html_path, pdf_path)
-            print(f"Converted {html_file} to PDF.")
-    
-    # return pdf file paths
-    pdf_files = []
-    for pdf_file in os.listdir(pdf_folder):
-        if pdf_file.endswith('.pdf'):
-            pdf_files.append(os.path.join(pdf_folder, pdf_file))
+    for html_file in html_files:
+        html_path = os.path.join(html_folder, html_file)
+        file_suffix = f"_part_{part_number}" if total_html_files > 1 else ""
+        pdf_file_name = f"{domain_name}{file_suffix}.pdf"
+        pdf_path = os.path.join(pdf_folder, pdf_file_name)
+        pdfkit.from_file(html_path, pdf_path)
+        print(f"Converted {html_file} to {pdf_file_name}.")
+        part_number += 1
+
+    pdf_files = [os.path.join(pdf_folder, f) for f in os.listdir(pdf_folder) if f.endswith('.pdf')]
     return pdf_files
+
 
 # def convert_html_to_pdf(html_folder, pdf_folder):
 #     if not os.path.exists(pdf_folder):
@@ -51,6 +51,22 @@ def convert_html_to_pdf(html_folder, pdf_folder):
 #             HTML(html_path).write_pdf(pdf_path)
 #             print(f"Converted {html_file} to PDF.")
 
+def get_base_directory(url):
+    parsed_url = urlparse(url)
+    # Extract the path and split it
+    path_parts = parsed_url.path.split('/')
+    # If the last part of the path contains a '.', it's likely a file or specific page, so we remove it
+    if '.' in path_parts[-1]:
+        path_parts = path_parts[:-1]
+    path = '/'.join(path_parts)
+    # Ensure the path ends with a slash
+    if path and not path.endswith('/'):
+        path += '/'
+    # Reconstruct the URL
+    base_url = urlunparse((parsed_url.scheme, parsed_url.netloc, path, '', '', ''))
+    print("base url: "+base_url)
+    return base_url
+
 def get_all_links(base_url, visited_urls, lock, all_urls):
     try:
         r = requests.get(base_url, timeout=5)
@@ -60,23 +76,19 @@ def get_all_links(base_url, visited_urls, lock, all_urls):
 
     links = soup.find_all('a')
     new_urls = []
-
-    # Check if the base URL is a directory or a file
-    if base_url.endswith('/'):
-        base_dir = base_url
-    else:
-        base_dir = '/'.join(base_url.split('/')[:-1]) + '/'
+    
+    base_dir = get_base_directory(base_url)
 
     for link in links:
         href = link.get('href')
         if href and '#' not in href:
             # Construct the full URL based on the nature of the base URL
-            if href.startswith('http'):
+            if href.startswith('http') or href.startswith('https'):
                 full_url = href
             else:
                 full_url = urljoin(base_dir, href)
 
-            # Check if the full URL starts with the original base URL (or your desired scope)
+            # Check if the full URL starts with the original base URL
             if full_url.startswith(base_dir):
                 with lock:
                     if full_url not in visited_urls:
@@ -89,10 +101,12 @@ def get_text_from_url(url):
     try:
         r = requests.get(url, timeout=5)
         if r.status_code != 200:
-            return ""
+            print("Wrong status code:"+r.status_code)
+            return "",""
         soup = BeautifulSoup(r.text, 'html.parser')
     except requests.RequestException:
-        return ""
+        print("Exception while making the http request for "+url)
+        return "",""
     
     # Decompose (remove) unwanted sections
     for section in soup.find_all(['header', 'footer', 'aside', 'nav']):
@@ -242,7 +256,8 @@ def main(full_process, base_url):
         if html_data:
             save_to_html([html_data], html_folder)
     
-    pdf_file_paths = convert_html_to_pdf(html_folder, pdf_folder)
+    pdf_file_paths = convert_html_to_pdf(html_folder, pdf_folder,base_url)
+    delete_files_in_folder(html_folder)
     
     end_time = time.time()
     print(f"Time taken: {end_time - start_time} seconds")
@@ -252,4 +267,4 @@ def main(full_process, base_url):
     return pdf_file_paths
 
 # if __name__ == "__main__":
-#     main()
+#     main(True, 'https://amaseo.de/')

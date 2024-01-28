@@ -23,6 +23,7 @@ available_assistant_ids = [
     ,"asst_k0AWkqe2WOvcapTeaJyzUhlJ" # Calibo Marketing
     ,"asst_fHy8v3BaH1i9CdsIURkm4hb8" # Calibo Product
     # ,"asst_lBblJYey0PciYoPmZFFPAKXF" # Calibo Internet Assistant
+    ,"asst_PaN8tD7WflzmYxTUMNI3ZaVB" #Test Assistant
 ]
 
 ## SESSION VARIABLES ##
@@ -130,7 +131,14 @@ if "assistant_id_instructions" not in st.session_state:
             ,"instructions": "Provide questions and URLs to the websites \
                 you want to access and summarize."
             ,"prompt": "Summarize the contents from www.snowflake.com."
+        },
+        #test assistant
+        "asst_PaN8tD7WflzmYxTUMNI3ZaVB": {
+            "subheader":"Test"
+            ,"instructions":"test"
+            ,"prompt":"test"
         }
+        
 
     }
 
@@ -367,7 +375,7 @@ if st.session_state.start_chat:
     if st.session_state.last_prompt:               
         # If the prompt contains a URL, ask the user about scraping mode
         url_found = extract_url(st.session_state.last_prompt)
-        if url_found and assistant_id == 'asst_c31H2OYVhod2mY2R2rp6E8Ta':
+        if url_found and (assistant_id == 'asst_c31H2OYVhod2mY2R2rp6E8Ta'or assistant_id == 'asst_PaN8tD7WflzmYxTUMNI3ZaVB'):
             # set session variable to true
             st.session_state.run_with_scraping = True
             # get url

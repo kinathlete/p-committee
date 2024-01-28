@@ -1,0 +1,7 @@
+conda activate p_awaike_v1
+git add .   
+git commit -m "hello"
+git push origin internet_feature
+streamlit run app.py
+/Users/marvinberthold/miniconda3/envs/p_awaike_v1/bin/pip install tiktoken
+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
