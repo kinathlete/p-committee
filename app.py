@@ -44,6 +44,12 @@ if "selected_version" not in st.session_state:
 if "selected_model" not in st.session_state:
     st.session_state.selected_model = ""
     
+if "retrieval_on" not in st.session_state:
+    st.session_state.retrieval_on = False
+
+if "code_interpreter_on" not in st.session_state:
+    st.session_state.code_interpreter_on = False
+    
 if "existing_file_id_list" not in st.session_state:
     st.session_state.existing_file_id_list = []
 
@@ -260,10 +266,10 @@ if st.session_state.api_key:
     available_models = []
     for model in client.models.list():
         available_models.append(model.id)
-    print(available_models)
 
     # Create a selectbox to pick the assistant by name and list all files associated with the assistant
     assistants = get_assistants()
+    print(assistants)
     assistant_names = []
     for assistant in assistants:
         assistant_names.append(assistant.name)
@@ -278,6 +284,13 @@ if st.session_state.api_key:
                 if dev_env:
                     st.session_state.assistant_instruction = st.sidebar.text_area("Instructions",assistant.instructions)
                     st.session_state.selected_model = st.sidebar.selectbox("Model", available_models,index=available_models.index(assistant.model))
+                    if {"type": "retrieval"} in assistant.tools:
+                        st.session_state.retrieval_on = True
+                    if {"type": "code_interpreter"} in assistant.tools:
+                        st.session_state.code_interpreter_on = True
+                    st.session_state.retrieval_on = st.sidebar.toggle("File Retrieval",value=st.session_state.retrieval_on)
+                    print(st.session_state.code_interpreter_on)
+                    st.session_state.code_interpreter_on = st.sidebar.toggle("Code Interpreter",value=st.session_state.code_interpreter_on)
                     
                 assistant_id = assistant.id
                 assistant_files = get_assistant_files(assistant_id)
